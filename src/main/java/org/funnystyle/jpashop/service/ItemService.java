@@ -3,10 +3,13 @@ package org.funnystyle.jpashop.service;
 import lombok.RequiredArgsConstructor;
 import org.funnystyle.jpashop.dto.ItemFormDto;
 import org.funnystyle.jpashop.dto.ItemImgDto;
+import org.funnystyle.jpashop.dto.ItemSearchDto;
 import org.funnystyle.jpashop.entity.Item;
 import org.funnystyle.jpashop.entity.ItemImg;
 import org.funnystyle.jpashop.repository.ItemImgRepository;
 import org.funnystyle.jpashop.repository.ItemRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -78,6 +81,11 @@ public class ItemService {
         }
 
         return item.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Item> getAdminItemPage(ItemSearchDto itemSearchDto, Pageable pageable) {
+        return itemRepository.getAdminItemPage(itemSearchDto, pageable);
     }
 
 }
