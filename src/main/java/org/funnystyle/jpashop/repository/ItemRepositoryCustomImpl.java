@@ -5,8 +5,9 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.funnystyle.jpashop.constant.ItemSellStatus;
 import org.funnystyle.jpashop.dto.ItemSearchDto;
+import org.funnystyle.jpashop.dto.MainItemDto;
+import org.funnystyle.jpashop.dto.QMainItemDto;
 import org.funnystyle.jpashop.entity.Item;
-import org.funnystyle.jpashop.entity.QItem;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +16,9 @@ import org.thymeleaf.util.StringUtils;
 import javax.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static org.funnystyle.jpashop.entity.QItem.item;
+import static org.funnystyle.jpashop.entity.QItemImg.itemImg;
 
 public class ItemRepositoryCustomImpl implements ItemRepositoryCustom {
 
@@ -25,7 +29,7 @@ public class ItemRepositoryCustomImpl implements ItemRepositoryCustom {
     }
 
     private BooleanExpression searchSellStatusEq(ItemSellStatus searchSellStatus) {
-        return searchSellStatus == null ? null : QItem.item.itemSellStatus.eq(searchSellStatus);
+        return searchSellStatus == null ? null : item.itemSellStatus.eq(searchSellStatus);
     }
 
     private BooleanExpression regDtsAfter(String searchDateType) {
@@ -44,15 +48,15 @@ public class ItemRepositoryCustomImpl implements ItemRepositoryCustom {
             dateTime = dateTime.minusMonths(6);
         }
 
-        return QItem.item.regTime.after(dateTime);
+        return item.regTime.after(dateTime);
     }
 
     private BooleanExpression searchByLike(String searchBy, String searchQuery) {
 
         if (StringUtils.equals("itemNm", searchBy)) {
-            return QItem.item.itemNm.like("%" + searchQuery + "%");
+            return item.itemNm.like("%" + searchQuery + "%");
         } else if (StringUtils.equals("createdBy", searchBy)) {
-            return QItem.item.createdBy.like("%" + searchQuery + "%");
+            return item.createdBy.like("%" + searchQuery + "%");
         }
 
         return null;
@@ -62,12 +66,12 @@ public class ItemRepositoryCustomImpl implements ItemRepositoryCustom {
     public Page<Item> getAdminItemPage(ItemSearchDto itemSearchDto, Pageable pageable) {
 
         QueryResults<Item> results = queryFactory
-                .selectFrom(QItem.item)
+                .selectFrom(item)
                 .where(regDtsAfter(itemSearchDto.getSearchDateType()),
                         searchSellStatusEq(itemSearchDto.getSearchSellStatus()),
                         searchByLike(itemSearchDto.getSearchBy(),
                                 itemSearchDto.getSearchQuery()))
-                .orderBy(QItem.item.id.desc())
+                .orderBy(item.id.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetchResults();
@@ -75,6 +79,37 @@ public class ItemRepositoryCustomImpl implements ItemRepositoryCustom {
         List<Item> content = results.getResults();
         long total = results.getTotal();
 
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    private BooleanExpression itemNmLike(String searchQuery) {
+        return StringUtils.isEmpty(searchQuery) ? null : item.itemNm.like("%" + searchQuery + "%");
+    }
+
+    @Override
+    public Page<MainItemDto> getMainItemPage(ItemSearchDto itemSearchDto, Pageable pageable) {
+
+        QueryResults<MainItemDto> results = queryFactory
+                .select(
+                        new QMainItemDto(
+                                item.id,
+                                item.itemNm,
+                                item.itemDetail,
+                                itemImg.imgUrl,
+                                item.price
+                        )
+                )
+                .from(itemImg)
+                .join(itemImg.item, item)
+                .where(itemImg.repimgYn.eq("Y"))
+                .where(itemNmLike(itemSearchDto.getSearchQuery()))
+                .orderBy(item.id.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetchResults();
+
+        List<MainItemDto> content = results.getResults();
+        long total = results.getTotal();
         return new PageImpl<>(content, pageable, total);
     }
 

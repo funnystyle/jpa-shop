@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.funnystyle.jpashop.dto.ItemFormDto;
 import org.funnystyle.jpashop.dto.ItemImgDto;
 import org.funnystyle.jpashop.dto.ItemSearchDto;
+import org.funnystyle.jpashop.dto.MainItemDto;
 import org.funnystyle.jpashop.entity.Item;
 import org.funnystyle.jpashop.entity.ItemImg;
 import org.funnystyle.jpashop.repository.ItemImgRepository;
@@ -86,6 +87,11 @@ public class ItemService {
     @Transactional(readOnly = true)
     public Page<Item> getAdminItemPage(ItemSearchDto itemSearchDto, Pageable pageable) {
         return itemRepository.getAdminItemPage(itemSearchDto, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MainItemDto> getMainItemPage(ItemSearchDto itemSearchDto, Pageable pageable) {
+        return itemRepository.getMainItemPage(itemSearchDto, pageable);
     }
 
 }
