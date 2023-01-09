@@ -2,13 +2,16 @@ package org.funnystyle.jpashop.service;
 
 import lombok.RequiredArgsConstructor;
 import org.funnystyle.jpashop.dto.OrderDto;
-import org.funnystyle.jpashop.entity.Item;
-import org.funnystyle.jpashop.entity.Member;
-import org.funnystyle.jpashop.entity.Order;
-import org.funnystyle.jpashop.entity.OrderItem;
+import org.funnystyle.jpashop.dto.OrderHistDto;
+import org.funnystyle.jpashop.dto.OrderItemDto;
+import org.funnystyle.jpashop.entity.*;
+import org.funnystyle.jpashop.repository.ItemImgRepository;
 import org.funnystyle.jpashop.repository.ItemRepository;
 import org.funnystyle.jpashop.repository.MemberRepository;
 import org.funnystyle.jpashop.repository.OrderRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,7 @@ public class OrderService {
     private final ItemRepository itemRepository;
     private final MemberRepository memberRepository;
     private final OrderRepository orderRepository;
+    private final ItemImgRepository itemImgRepository;
 
     public Long order(OrderDto orderDto, String email) {
         Item item = itemRepository.findById(orderDto.getItemId())
@@ -38,6 +42,29 @@ public class OrderService {
         orderRepository.save(order);
 
         return order.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderHistDto> getOrderList(String email, Pageable pageable) {
+
+        List<Order> orders = orderRepository.findOrders(email, pageable);
+        Long totalCount = orderRepository.countOrder(email);
+
+        List<OrderHistDto> orderHistDtos = new ArrayList<>();
+
+        for (Order order : orders) {
+            OrderHistDto orderHistDto = new OrderHistDto(order);
+            List<OrderItem> orderItems = order.getOrderItems();
+            for (OrderItem orderItem : orderItems) {
+                ItemImg itemImg = itemImgRepository.findByItemIdAndRepimgYn(orderItem.getItem().getId(), "Y");
+                OrderItemDto orderItemDto = new OrderItemDto(orderItem, itemImg.getImgUrl());
+                orderHistDto.addOrderItemDto(orderItemDto);
+            }
+
+            orderHistDtos.add(orderHistDto);
+        }
+
+        return new PageImpl<OrderHistDto>(orderHistDtos, pageable, totalCount);
     }
 
 }
